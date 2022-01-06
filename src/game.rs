@@ -1,4 +1,5 @@
 use crate::{Strategy, Word};
+use colored::*;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum State {
@@ -9,6 +10,23 @@ pub enum State {
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Rule<const SIZE: usize>([State; SIZE]);
+
+impl<const SIZE: usize> std::fmt::Display for Rule<SIZE> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let mut result = String::new();
+        for s in self.0.iter() {
+            result.push_str(&format!(
+                "{}",
+                match s {
+                    State::Gray(c) => c.to_string().dimmed(),
+                    State::Yellow(c) => c.to_string().yellow(),
+                    State::Green(c) => c.to_string().green(),
+                }
+            ));
+        }
+        f.write_str(&result)
+    }
+}
 
 impl<const SIZE: usize> Rule<SIZE> {
     pub fn from_mask(query: &Word<SIZE>, mask: &Word<SIZE>) -> Self {
@@ -49,11 +67,14 @@ impl<const SIZE: usize> Rule<SIZE> {
     }
 
     pub fn filter(&self, words: &[Word<SIZE>]) -> Vec<Word<SIZE>> {
-        words
+        let init_len = words.len();
+        let result = words
             .iter()
             .filter(|&word| self.check(word))
             .map(|&w| w)
-            .collect()
+            .collect::<Vec<_>>();
+        println!("{}: {} -> {}", self, init_len, result.len());
+        result
     }
 }
 
@@ -69,7 +90,6 @@ impl<const SIZE: usize> Simulation<SIZE> {
 }
 impl<const SIZE: usize> Interface<SIZE> for Simulation<SIZE> {
     fn get_rule(&self, query: &Word<SIZE>) -> Rule<SIZE> {
-        println!("Trying: {}", query);
         Rule::from_query(query, &self.0)
     }
 }
@@ -102,14 +122,12 @@ impl<const SIZE: usize> Game<SIZE> {
         I: Interface<SIZE>,
         S: Strategy<SIZE>,
     {
-        println!("initial dictionary size: {}", self.words.len());
         let mut filtered = if let Some(r) = self.first_rule {
             r.filter(&self.words)
         } else {
             self.words.clone()
         };
         while filtered.len() > 1 {
-            println!("filtered dictionary size: {}", filtered.len());
             let query = strategy.select_query(&self.words, &filtered);
             let rule = interface.get_rule(&query);
             filtered = rule.filter(&filtered);
