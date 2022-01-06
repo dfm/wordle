@@ -1,9 +1,11 @@
-use wordle::Strategy;
+use wordle::Interface;
 
 fn main() {
     let words: Vec<wordle::Word<5>> = wordle::load_words("data/words_alpha.txt");
-    let query = wordle::Word(['t', 'a', 'r', 'e', 's']);
-    let truth = wordle::Word(['t', 'i', 'g', 'e', 'r']);
     let strategy = wordle::Active;
-    strategy.play(&query, &words, &truth);
+    let interface = wordle::Simulation::new("squid".into());
+    // let interface = wordle::UserInput;
+    let rule = interface.get_rule(&"tares".into());
+    let game = wordle::Game::new(&words, Some(rule));
+    game.play(&interface, &strategy);
 }
