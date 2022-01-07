@@ -58,3 +58,10 @@ pub fn load_words<P: AsRef<Path>, const SIZE: usize>(path: P) -> Vec<Word<SIZE>>
     }
     words
 }
+
+pub fn official_word_list() -> Vec<Word<5>> {
+    std::include_str!("words.txt")
+        .lines()
+        .map(|l| l.trim().into())
+        .collect()
+}

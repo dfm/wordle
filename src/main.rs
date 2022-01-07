@@ -17,6 +17,10 @@ struct Args {
     /// Use hard mode
     #[clap(short, long)]
     hard: bool,
+
+    /// Run the baseline strategy
+    #[clap(short, long)]
+    baseline: bool,
 }
 
 fn main() {
@@ -25,17 +29,23 @@ fn main() {
     let words: Vec<wordle::Word<5>> = if let Some(path) = args.dictionary {
         wordle::load_words(path)
     } else {
-        wordle::load_words("data/words_official.txt")
+        wordle::official_word_list()
     };
-
-    let strategy = wordle::Active;
 
     macro_rules! play_game {
         ($interface:expr) => {
             let interface = $interface;
             let rule = interface.get_rule(&"tares".into());
             let game = wordle::Game::new(&words, Some(rule));
-            println!("{}", game.play(&interface, &strategy, args.hard).unwrap());
+            if let Some(result) = if args.baseline {
+                game.play(&interface, &wordle::Baseline, args.hard)
+            } else {
+                game.play(&interface, &wordle::Active, args.hard)
+            } {
+                println!("{}", result);
+            } else {
+                println!("There aren't any words in the word list that satisfy these constraints")
+            }
         };
     }
 

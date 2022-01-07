@@ -37,7 +37,7 @@ impl<const SIZE: usize> Rule<SIZE> {
                 '0' => *s = State::Gray(q),
                 '1' => *s = State::Yellow(q),
                 '2' => *s = State::Green(q),
-                _ => panic!(),
+                _ => unreachable!("Invalid mask character; must be 0, 1, or 2"),
             }
         }
         rule
@@ -96,9 +96,24 @@ impl<const SIZE: usize> Interface<SIZE> for Simulation<SIZE> {
 pub struct UserInput<const SIZE: usize>;
 impl<const SIZE: usize> Interface<SIZE> for UserInput<SIZE> {
     fn get_rule(&self, query: &Word<SIZE>) -> Rule<SIZE> {
-        println!("Try: {}", query);
+        use std::io::Write;
+        println!("Try: {}", query.to_string().bold());
+        print!(
+            "Result ({}, {}, {}; e.g. {}{}{}{}{}): ",
+            "0: gray".dimmed(),
+            "1: yellow".yellow(),
+            "2: green".green(),
+            "0".dimmed(),
+            "1".yellow(),
+            "0".dimmed(),
+            "2".green(),
+            "1".yellow(),
+        );
+        let _ = std::io::stdout().flush();
         let mut buf = String::new();
-        std::io::stdin().read_line(&mut buf).unwrap();
+        std::io::stdin()
+            .read_line(&mut buf)
+            .expect("Input required");
         Rule::from_mask(query, &buf.trim().into())
     }
 }
