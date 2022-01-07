@@ -35,7 +35,7 @@ fn main() {
             let interface = $interface;
             let rule = interface.get_rule(&"tares".into());
             let game = wordle::Game::new(&words, Some(rule));
-            println!("{}", game.play(&interface, &strategy).unwrap());
+            println!("{}", game.play(&interface, &strategy, args.hard).unwrap());
         };
     }
 

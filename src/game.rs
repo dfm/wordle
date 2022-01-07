@@ -117,7 +117,7 @@ impl<const SIZE: usize> Game<SIZE> {
         }
     }
 
-    pub fn play<I, S>(&self, interface: &I, strategy: &S) -> Option<Word<SIZE>>
+    pub fn play<I, S>(&self, interface: &I, strategy: &S, hard: bool) -> Option<Word<SIZE>>
     where
         I: Interface<SIZE>,
         S: Strategy<SIZE>,
@@ -128,8 +128,12 @@ impl<const SIZE: usize> Game<SIZE> {
             self.words.clone()
         };
         while filtered.len() > 1 {
-            let query = strategy.select_query(&self.words, &filtered);
+            let query =
+                strategy.select_query(if hard { &filtered } else { &self.words }, &filtered);
             let rule = interface.get_rule(&query);
+            if rule.0.iter().all(|&s| matches!(s, State::Green(_))) {
+                return Some(query);
+            }
             filtered = rule.filter(&filtered);
         }
         filtered.into_iter().next()
