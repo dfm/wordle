@@ -10,10 +10,10 @@ impl<const SIZE: usize> Strategy<SIZE> for Baseline {
             }
         }
         let mut query = Word(['a'; SIZE]);
-        for n in 0..SIZE {
+        for (n, x) in count.iter_mut().enumerate() {
             query.0[n] = ('a'..='z')
                 .filter(|&c| query.0.iter().take(n).all(|&x| x != c))
-                .max_by_key(|&c| count[n][(c as u8 - b'a') as usize])
+                .max_by_key(|&c| x[(c as u8 - b'a') as usize])
                 .unwrap();
         }
         query

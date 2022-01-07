@@ -1,5 +1,5 @@
 use crate::{Strategy, Word};
-use colored::*;
+use colored::Colorize;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum State {
@@ -8,6 +8,7 @@ pub enum State {
     Green(char),
 }
 
+#[must_use]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Rule<const SIZE: usize>([State; SIZE]);
 
@@ -47,12 +48,10 @@ impl<const SIZE: usize> Rule<SIZE> {
         for ((&q, &w), s) in query.0.iter().zip(word.0.iter()).zip(rule.0.iter_mut()) {
             if q == w {
                 *s = State::Green(q);
+            } else if word.0.iter().any(|&w| w == q) {
+                *s = State::Yellow(q);
             } else {
-                if word.0.iter().any(|&w| w == q) {
-                    *s = State::Yellow(q);
-                } else {
-                    *s = State::Gray(q);
-                }
+                *s = State::Gray(q);
             }
         }
         rule
@@ -71,7 +70,7 @@ impl<const SIZE: usize> Rule<SIZE> {
         let result = words
             .iter()
             .filter(|&word| self.check(word))
-            .map(|&w| w)
+            .copied()
             .collect::<Vec<_>>();
         println!("{}: {} -> {}", self, init_len, result.len());
         result

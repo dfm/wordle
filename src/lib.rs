@@ -38,7 +38,7 @@ impl<const SIZE: usize> From<String> for Word<SIZE> {
 
 impl<const SIZE: usize> std::fmt::Display for Word<SIZE> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        f.write_str(&self.0.iter().map(|&c| c).collect::<String>())
+        f.write_str(&self.0.iter().copied().collect::<String>())
     }
 }
 

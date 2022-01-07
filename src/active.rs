@@ -15,9 +15,7 @@ impl<const SIZE: usize> Strategy<SIZE> for Active {
             .iter()
             .min_by_key(|&query| {
                 let counter = HashMap::counter_from_iter(
-                    valid_words
-                        .iter()
-                        .map(|word| Rule::from_query(&query, word)),
+                    valid_words.iter().map(|word| Rule::from_query(query, word)),
                 );
                 expected_entropy(counter.values())
             })
