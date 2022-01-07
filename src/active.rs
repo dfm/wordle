@@ -9,6 +9,7 @@ impl<const SIZE: usize> Strategy<SIZE> for Active {
         valid_words: &[Word<SIZE>],
     ) -> Word<SIZE> {
         if valid_words.len() <= 2 {
+            println!("{:?}", valid_words);
             return valid_words[0];
         }
         *full_word_list

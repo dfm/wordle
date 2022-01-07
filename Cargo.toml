@@ -5,6 +5,7 @@ edition = "2018"
 
 [dependencies]
 colored = "2.0"
+clap = { version = "3.0.5", features = ["derive"] }
 
 [profile.dev]
 opt-level = 3
