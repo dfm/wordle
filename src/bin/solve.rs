@@ -78,7 +78,7 @@ fn shadow_root<'a>(
 
 fn main() -> WebDriverResult<()> {
     let caps = DesiredCapabilities::chrome();
-    let driver = WebDriver::new("http://localhost:4444", &caps)?;
+    let driver = WebDriver::new("http://localhost:4444/wd/hub", &caps)?;
 
     // Navigate to URL.
     driver.get("https://www.powerlanguage.co.uk/wordle/")?;
