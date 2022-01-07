@@ -78,7 +78,7 @@ impl<const SIZE: usize> Rule<SIZE> {
 }
 
 pub trait Interface<const SIZE: usize> {
-    fn get_rule(&self, query: &Word<SIZE>) -> Rule<SIZE>;
+    fn get_rule(&mut self, query: &Word<SIZE>) -> Rule<SIZE>;
 }
 
 pub struct Simulation<const SIZE: usize>(Word<SIZE>);
@@ -88,14 +88,14 @@ impl<const SIZE: usize> Simulation<SIZE> {
     }
 }
 impl<const SIZE: usize> Interface<SIZE> for Simulation<SIZE> {
-    fn get_rule(&self, query: &Word<SIZE>) -> Rule<SIZE> {
+    fn get_rule(&mut self, query: &Word<SIZE>) -> Rule<SIZE> {
         Rule::from_query(query, &self.0)
     }
 }
 
 pub struct UserInput<const SIZE: usize>;
 impl<const SIZE: usize> Interface<SIZE> for UserInput<SIZE> {
-    fn get_rule(&self, query: &Word<SIZE>) -> Rule<SIZE> {
+    fn get_rule(&mut self, query: &Word<SIZE>) -> Rule<SIZE> {
         use std::io::Write;
         println!("Try: {}", query.to_string().bold());
         print!(
@@ -131,7 +131,7 @@ impl<const SIZE: usize> Game<SIZE> {
         }
     }
 
-    pub fn play<I, S>(&self, interface: &I, strategy: &S, hard: bool) -> Option<Word<SIZE>>
+    pub fn play<I, S>(&self, interface: &mut I, strategy: &S, hard: bool) -> Option<Word<SIZE>>
     where
         I: Interface<SIZE>,
         S: Strategy<SIZE>,

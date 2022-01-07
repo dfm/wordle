@@ -34,13 +34,13 @@ fn main() {
 
     macro_rules! play_game {
         ($interface:expr) => {
-            let interface = $interface;
+            let mut interface = $interface;
             let rule = interface.get_rule(&"tares".into());
             let game = wordle::Game::new(&words, Some(rule));
             if let Some(result) = if args.baseline {
-                game.play(&interface, &wordle::Baseline, args.hard)
+                game.play(&mut interface, &wordle::Baseline, args.hard)
             } else {
-                game.play(&interface, &wordle::Active, args.hard)
+                game.play(&mut interface, &wordle::Active, args.hard)
             } {
                 println!("{}", result);
             } else {
