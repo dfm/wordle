@@ -1,0 +1,21 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - uses: nanasess/setup-chromedriver@v1
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+      - name: Solve the puzzle
+        run: |
+          export DISPLAY=:99
+          chromedriver --url-base=/wd/hub --port=4444 &
+          cargo run --bin solve
