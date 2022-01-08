@@ -57,6 +57,10 @@ impl<const SIZE: usize> Rule<SIZE> {
         rule
     }
 
+    pub fn wins(&self) -> bool {
+        self.0.iter().all(|&s| matches!(s, State::Green(_)))
+    }
+
     pub fn check(&self, word: &Word<SIZE>) -> bool {
         self.0.iter().zip(word.0.iter()).all(|(&s, &c)| match s {
             State::Gray(x) => word.0.iter().all(|&w| w != x),
@@ -65,14 +69,16 @@ impl<const SIZE: usize> Rule<SIZE> {
         })
     }
 
-    pub fn filter(&self, words: &[Word<SIZE>]) -> Vec<Word<SIZE>> {
+    pub fn filter(&self, words: &[Word<SIZE>], quiet: bool) -> Vec<Word<SIZE>> {
         let init_len = words.len();
         let result = words
             .iter()
             .filter(|&word| self.check(word))
             .copied()
             .collect::<Vec<_>>();
-        println!("{}: {} -> {}", self, init_len, result.len());
+        if !quiet {
+            println!("{}: {} -> {}", self, init_len, result.len());
+        }
         result
     }
 }
@@ -119,37 +125,63 @@ impl<const SIZE: usize> Interface<SIZE> for UserInput<SIZE> {
 }
 
 pub struct Game<const SIZE: usize> {
-    words: Vec<Word<SIZE>>,
+    corpus: Vec<Word<SIZE>>,
+    allowed: Vec<Word<SIZE>>,
     first_rule: Option<Rule<SIZE>>,
 }
 
 impl<const SIZE: usize> Game<SIZE> {
-    pub fn new(words: &[Word<SIZE>], first_rule: Option<Rule<SIZE>>) -> Self {
+    pub fn new(
+        corpus: &[Word<SIZE>],
+        allowed: &[Word<SIZE>],
+        first_rule: Option<Rule<SIZE>>,
+    ) -> Self {
         Self {
-            words: words.into(),
+            corpus: corpus.into(),
+            allowed: allowed.into(),
             first_rule,
         }
     }
 
-    pub fn play<I, S>(&self, interface: &mut I, strategy: &S, hard: bool) -> Option<Word<SIZE>>
+    pub fn play<I, S>(
+        &self,
+        interface: &mut I,
+        strategy: &S,
+        hard: bool,
+        quiet: bool,
+    ) -> Option<Word<SIZE>>
     where
         I: Interface<SIZE>,
         S: Strategy<SIZE>,
     {
+        let mut words = self.corpus.clone();
         let mut filtered = if let Some(r) = self.first_rule {
-            r.filter(&self.words)
+            if hard {
+                words = r.filter(&words, true);
+            }
+            r.filter(&self.allowed, quiet)
         } else {
-            self.words.clone()
+            self.allowed.clone()
         };
         while filtered.len() > 1 {
-            let query =
-                strategy.select_query(if hard { &filtered } else { &self.words }, &filtered);
+            let query = strategy.select_query(&words, &filtered);
             let rule = interface.get_rule(&query);
-            if rule.0.iter().all(|&s| matches!(s, State::Green(_))) {
+            if rule.wins() {
                 return Some(query);
             }
-            filtered = rule.filter(&filtered);
+            if hard {
+                words = rule.filter(&words, true);
+            }
+            filtered = rule.filter(&filtered, quiet);
         }
-        filtered.into_iter().next()
+        let result = filtered.into_iter().next();
+        result.and_then(|word| {
+            let rule = interface.get_rule(&word);
+            if rule.wins() {
+                Some(word)
+            } else {
+                None
+            }
+        })
     }
 }

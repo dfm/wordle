@@ -2,7 +2,7 @@ use clap::Parser;
 use std::path::PathBuf;
 use wordle::Interface;
 
-/// Simple program to greet a person
+/// Simulate a wordle game
 #[derive(Parser, Debug)]
 #[clap(about, version, author)]
 struct Args {
@@ -18,29 +18,54 @@ struct Args {
     #[clap(short, long)]
     hard: bool,
 
+    /// Don't print guesses
+    #[clap(short, long)]
+    quiet: bool,
+
     /// Run the baseline strategy
     #[clap(short, long)]
     baseline: bool,
+
+    /// Optimize first guess
+    #[clap(short, long)]
+    first: bool,
+
+    /// Use the cheat codes
+    #[clap(short, long)]
+    cheat: bool,
 }
 
 fn main() {
     let args = Args::parse();
 
-    let words: Vec<wordle::Word<5>> = if let Some(path) = args.dictionary {
+    let corpus: Vec<wordle::Word<5>> = if let Some(path) = args.dictionary {
         wordle::load_words(path)
     } else {
         wordle::official_word_list()
     };
 
+    let words = if args.cheat {
+        wordle::official_cheat_list()
+    } else {
+        corpus.clone()
+    };
+
     macro_rules! play_game {
         ($interface:expr) => {
             let mut interface = $interface;
-            let rule = interface.get_rule(&"tares".into());
-            let game = wordle::Game::new(&words, Some(rule));
+            let game = wordle::Game::new(
+                &corpus,
+                &words,
+                if args.first {
+                    None
+                } else {
+                    Some(interface.get_rule(&(if args.cheat { "soare" } else { "tares" }).into()))
+                },
+            );
             if let Some(result) = if args.baseline {
-                game.play(&mut interface, &wordle::Baseline, args.hard)
+                game.play(&mut interface, &wordle::Baseline, args.hard, args.quiet)
             } else {
-                game.play(&mut interface, &wordle::Active, args.hard)
+                game.play(&mut interface, &wordle::Active, args.hard, args.quiet)
             } {
                 println!("{}", result);
             } else {

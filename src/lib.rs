@@ -65,3 +65,11 @@ pub fn official_word_list() -> Vec<Word<5>> {
         .map(|l| l.trim().into())
         .collect()
 }
+
+pub fn official_cheat_list() -> Vec<Word<5>> {
+    official_word_list()
+        .iter()
+        .take_while(|&&w| w != "aalii".into())
+        .copied()
+        .collect()
+}
