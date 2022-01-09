@@ -1,4 +1,4 @@
-use crate::{Strategy, Word};
+use crate::{strategy::Strategy, Word};
 use rand::{seq::SliceRandom, thread_rng};
 
 pub struct Baseline;

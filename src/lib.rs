@@ -5,11 +5,8 @@ use std::path::Path;
 pub mod game;
 pub use game::*;
 
-mod baseline;
-pub use baseline::*;
-
-mod active;
-pub use active::*;
+mod strategy;
+pub use strategy::StrategyType;
 
 mod counter;
 
@@ -42,12 +39,7 @@ impl<const SIZE: usize> std::fmt::Display for Word<SIZE> {
     }
 }
 
-pub trait Strategy<const SIZE: usize> {
-    fn select_query(&self, full_word_list: &[Word<SIZE>], valid_words: &[Word<SIZE>])
-        -> Word<SIZE>;
-}
-
-pub fn load_words<P: AsRef<Path>, const SIZE: usize>(path: P) -> Vec<Word<SIZE>> {
+pub fn load_dictionary<P: AsRef<Path>, const SIZE: usize>(path: P) -> Vec<Word<SIZE>> {
     let mut words = Vec::new();
     let file = File::open(path).unwrap();
     for line in io::BufReader::new(file).lines() {
@@ -66,7 +58,7 @@ pub fn official_word_list() -> Vec<Word<5>> {
         .collect()
 }
 
-pub fn official_cheat_list() -> Vec<Word<5>> {
+pub fn common_word_list() -> Vec<Word<5>> {
     official_word_list()
         .iter()
         .take_while(|&&w| w != "aalii".into())

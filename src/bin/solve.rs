@@ -2,7 +2,7 @@ use clap::Parser;
 use thirtyfour_sync::{
     http::reqwest_sync::ReqwestDriverSync, prelude::*, ElementId, GenericWebDriver,
 };
-use wordle::{Interface, Rule, Word};
+use wordle::{Interface, Rule, StandardGame, StrategyType, Word};
 
 /// Simulate a wordle game
 #[derive(Parser, Debug)]
@@ -22,7 +22,7 @@ struct Args {
 
     /// Use the cheat codes
     #[clap(short, long)]
-    cheat: bool,
+    common: bool,
 }
 
 #[derive(serde::Deserialize)]
@@ -105,12 +105,17 @@ fn main() -> WebDriverResult<()> {
     // println!("hi: 🟩🟨⬛");
     // Ok(())
 
-    let cl_args = Args::parse();
-    let corpus = wordle::official_word_list();
-    let words = if cl_args.cheat {
-        wordle::official_cheat_list()
+    let args = Args::parse();
+    let game = StandardGame::new()
+        .hard(args.hard)
+        .quiet(true)
+        .common(args.common)
+        .optimize_first_guess(args.first)
+        .build();
+    let strategy = if args.baseline {
+        StrategyType::Baseline
     } else {
-        corpus.clone()
+        StrategyType::Active
     };
 
     let caps = DesiredCapabilities::chrome();
@@ -118,32 +123,24 @@ fn main() -> WebDriverResult<()> {
 
     // Navigate to URL.
     driver.get("https://www.powerlanguage.co.uk/wordle/")?;
-    let game = driver.query(By::Tag("game-app")).first()?;
-    let game = shadow_root(&driver, &game)?;
+    let game_elem = driver.query(By::Tag("game-app")).first()?;
+    let game_elem = shadow_root(&driver, &game_elem)?;
 
     // Close the popup
-    let modal = game.query(By::Tag("game-modal")).first()?;
+    let modal = game_elem.query(By::Tag("game-modal")).first()?;
     let mut args = ScriptArgs::new();
     args.push(modal.clone())?;
     driver.execute_script_with_args("arguments[0].remove()", &args)?;
 
+    // Play the game
     let mut interface = WebInput::<5> {
         driver: &driver,
-        game: &game,
+        game: &game_elem,
         row: 0,
         rules: Vec::new(),
     };
-    let game = wordle::Game::new(
-        &corpus,
-        &words,
-        Some(interface.get_rule(&(if cl_args.cheat { "soare" } else { "tares" }).into())),
-    );
-    let result = if cl_args.baseline {
-        game.play(&mut interface, &wordle::Baseline, cl_args.hard, false)
-    } else {
-        game.play(&mut interface, &wordle::Active, cl_args.hard, false)
-    };
-    println!("{}", result.unwrap());
+    let result = strategy.play_game(&mut interface, &game).unwrap();
+    println!("'{}' in {} guesses", result.1, result.0);
 
     std::thread::sleep(std::time::Duration::from_secs(10));
 

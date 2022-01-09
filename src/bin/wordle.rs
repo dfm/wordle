@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::path::PathBuf;
-use wordle::Interface;
+use wordle::{StandardGame, StrategyType};
 
 /// Simulate a wordle game
 #[derive(Parser, Debug)]
@@ -32,42 +32,32 @@ struct Args {
 
     /// Use the cheat codes
     #[clap(short, long)]
-    cheat: bool,
+    common: bool,
 }
 
 fn main() {
     let args = Args::parse();
 
-    let corpus: Vec<wordle::Word<5>> = if let Some(path) = args.dictionary {
-        wordle::load_words(path)
-    } else {
-        wordle::official_word_list()
-    };
+    let game = StandardGame::new()
+        .dictionary(args.dictionary)
+        .hard(args.hard)
+        .quiet(args.quiet)
+        .common(args.common)
+        .optimize_first_guess(args.first)
+        .build();
 
-    let words = if args.cheat {
-        wordle::official_cheat_list()
+    let strategy = if args.baseline {
+        StrategyType::Baseline
     } else {
-        corpus.clone()
+        StrategyType::Active
     };
 
     macro_rules! play_game {
         ($interface:expr) => {
             let mut interface = $interface;
-            let game = wordle::Game::new(
-                &corpus,
-                &words,
-                if args.first {
-                    None
-                } else {
-                    Some(interface.get_rule(&(if args.cheat { "soare" } else { "tares" }).into()))
-                },
-            );
-            if let Some(result) = if args.baseline {
-                game.play(&mut interface, &wordle::Baseline, args.hard, args.quiet)
-            } else {
-                game.play(&mut interface, &wordle::Active, args.hard, args.quiet)
-            } {
-                println!("{}", result);
+
+            if let Some(result) = strategy.play_game(&mut interface, &game) {
+                println!("'{}' in {} guesses", result.1, result.0);
             } else {
                 println!("There aren't any words in the word list that satisfy these constraints")
             }

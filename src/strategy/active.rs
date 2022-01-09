@@ -1,21 +1,23 @@
-use crate::{counter::Counter, Rule, Strategy, Word};
+use crate::{counter::Counter, strategy::Strategy, Rule, Word};
 use std::collections::HashMap;
 
 pub struct Active;
 impl<const SIZE: usize> Strategy<SIZE> for Active {
     fn select_query(
         &self,
-        full_word_list: &[Word<SIZE>],
-        valid_words: &[Word<SIZE>],
+        allowed_queries: &[Word<SIZE>],
+        possible_words: &[Word<SIZE>],
     ) -> Word<SIZE> {
-        if valid_words.len() <= 2 {
-            return valid_words[0];
+        if possible_words.len() <= 2 {
+            return possible_words[0];
         }
-        *full_word_list
+        *allowed_queries
             .iter()
             .min_by_key(|&query| {
                 let counter = HashMap::counter_from_iter(
-                    valid_words.iter().map(|word| Rule::from_query(query, word)),
+                    possible_words
+                        .iter()
+                        .map(|word| Rule::from_query(query, word)),
                 );
                 expected_entropy(counter.values())
             })

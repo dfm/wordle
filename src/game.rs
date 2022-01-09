@@ -1,4 +1,4 @@
-use crate::{Strategy, Word};
+use crate::{common_word_list, load_dictionary, official_word_list, strategy::Strategy, Word};
 use colored::Colorize;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -125,63 +125,136 @@ impl<const SIZE: usize> Interface<SIZE> for UserInput<SIZE> {
 }
 
 pub struct Game<const SIZE: usize> {
-    corpus: Vec<Word<SIZE>>,
-    allowed: Vec<Word<SIZE>>,
-    first_rule: Option<Rule<SIZE>>,
+    hard: bool,
+    quiet: bool,
+    first_guess: Option<Word<SIZE>>,
+    allowed_queries: Vec<Word<SIZE>>,
+    pub possible_words: Vec<Word<SIZE>>,
 }
 
 impl<const SIZE: usize> Game<SIZE> {
     pub fn new(
-        corpus: &[Word<SIZE>],
-        allowed: &[Word<SIZE>],
-        first_rule: Option<Rule<SIZE>>,
+        hard: bool,
+        quiet: bool,
+        first_guess: Option<Word<SIZE>>,
+        allowed_queries: &[Word<SIZE>],
+        possible_words: &[Word<SIZE>],
     ) -> Self {
         Self {
-            corpus: corpus.into(),
-            allowed: allowed.into(),
-            first_rule,
+            hard,
+            quiet,
+            first_guess,
+            allowed_queries: allowed_queries.into(),
+            possible_words: possible_words.into(),
         }
     }
 
-    pub fn play<I, S>(
-        &self,
-        interface: &mut I,
-        strategy: &S,
-        hard: bool,
-        quiet: bool,
-    ) -> Option<Word<SIZE>>
+    pub fn play<I, S>(&self, interface: &mut I, strategy: &S) -> Option<(usize, Word<SIZE>)>
     where
         I: Interface<SIZE>,
         S: Strategy<SIZE>,
     {
-        let mut words = self.corpus.clone();
-        let mut filtered = if let Some(r) = self.first_rule {
-            if hard {
-                words = r.filter(&words, true);
+        let mut count = 0;
+        let mut allowed_queries = self.allowed_queries.clone();
+        let mut possible_words = if let Some(w) = self.first_guess {
+            let r = interface.get_rule(&w);
+            if self.hard {
+                allowed_queries = r.filter(&allowed_queries, true);
             }
-            r.filter(&self.allowed, quiet)
+            count += 1;
+            r.filter(&self.possible_words, self.quiet)
         } else {
-            self.allowed.clone()
+            self.possible_words.clone()
         };
-        while filtered.len() > 1 {
-            let query = strategy.select_query(&words, &filtered);
+        while possible_words.len() > 1 {
+            count += 1;
+            let query = strategy.select_query(&allowed_queries, &possible_words);
             let rule = interface.get_rule(&query);
             if rule.wins() {
-                return Some(query);
+                return Some((count, query));
             }
-            if hard {
-                words = rule.filter(&words, true);
+            if self.hard {
+                allowed_queries = rule.filter(&allowed_queries, true);
             }
-            filtered = rule.filter(&filtered, quiet);
+            possible_words = rule.filter(&possible_words, self.quiet);
         }
-        let result = filtered.into_iter().next();
+        let result = possible_words.into_iter().next();
         result.and_then(|word| {
             let rule = interface.get_rule(&word);
             if rule.wins() {
-                Some(word)
+                Some((count + 1, word))
             } else {
                 None
             }
         })
+    }
+}
+
+#[must_use]
+#[derive(Default)]
+pub struct StandardGame {
+    dictionary: Option<std::path::PathBuf>,
+    hard: bool,
+    quiet: bool,
+    common: bool,
+    optimize_first_guess: bool,
+}
+
+impl StandardGame {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn dictionary(mut self, dictionary: Option<std::path::PathBuf>) -> Self {
+        self.dictionary = dictionary;
+        self
+    }
+
+    pub fn hard(mut self, hard: bool) -> Self {
+        self.hard = hard;
+        self
+    }
+
+    pub fn quiet(mut self, quiet: bool) -> Self {
+        self.quiet = quiet;
+        self
+    }
+
+    pub fn common(mut self, common: bool) -> Self {
+        self.common = common;
+        self
+    }
+
+    pub fn optimize_first_guess(mut self, optimize: bool) -> Self {
+        self.optimize_first_guess = optimize;
+        self
+    }
+
+    pub fn build(self) -> Game<5> {
+        let allowed_queries = if let Some(path) = self.dictionary {
+            load_dictionary(path)
+        } else {
+            official_word_list()
+        };
+
+        let possible_words = if self.common {
+            common_word_list()
+        } else {
+            allowed_queries.clone()
+        };
+
+        let first_guess = if self.optimize_first_guess {
+            None
+        } else {
+            Some((if self.common { "soare" } else { "tares" }).into())
+        };
+
+        Game::new(
+            self.hard,
+            self.quiet,
+            first_guess,
+            &allowed_queries,
+            &possible_words,
+        )
     }
 }
