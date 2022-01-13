@@ -2,6 +2,7 @@
 name = "wordle"
 version = "0.1.0"
 edition = "2018"
+default-run = "wordle"
 
 [dependencies]
 rand = "0.8"

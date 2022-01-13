@@ -23,6 +23,10 @@ struct Args {
     /// Use the cheat codes
     #[clap(short, long)]
     common: bool,
+
+    /// Don't print progress
+    #[clap(short, long)]
+    quiet: bool,
 }
 
 #[derive(serde::Deserialize)]
@@ -108,7 +112,7 @@ fn main() -> WebDriverResult<()> {
     let args = Args::parse();
     let game = StandardGame::new()
         .hard(args.hard)
-        .quiet(true)
+        .quiet(args.quiet)
         .common(args.common)
         .optimize_first_guess(args.first)
         .build();
