@@ -15,7 +15,7 @@ the expected information gain at each step.
 Simulating the performance of these algorithms for all words in the Wordle
 dictionary gives the following results:
 
-![The performance of our solving strategies](assets/figure.png)
+<img src="assets/figure.png" width=500 alt="The performance of our strategies">
 
 where the orange histogram shows the distribution of guesses required when the
 solver doesn't know that the correct Wordle is a "common" word. The green
